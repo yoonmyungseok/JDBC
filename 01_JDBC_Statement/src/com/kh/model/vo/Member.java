@@ -61,7 +61,20 @@ public class Member {
 		this.hobby = hobby;
 		this.enrollDate = enrollDate;
 	}
-	
+	//회원 추가용 생성자
+	public Member(String userId, String userPwd, String userName, String gender, int age, String email, String phone,
+			String address, String hobby) {
+		super();
+		this.userId = userId;
+		this.userPwd = userPwd;
+		this.userName = userName;
+		this.gender = gender;
+		this.age = age;
+		this.email = email;
+		this.phone = phone;
+		this.address = address;
+		this.hobby = hobby;
+	}
 	
 	//메소드부: 메소드들이 모여있는 부분
 	//getter/setter, toString 오버라이딩
