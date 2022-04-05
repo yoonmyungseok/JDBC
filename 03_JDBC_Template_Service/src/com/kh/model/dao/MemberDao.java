@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+import com.kh.common.JDBCTemplate;
 import com.kh.model.vo.Member;
 
 /*
@@ -18,9 +19,6 @@ import com.kh.model.vo.Member;
  * 결과를 Controller로 리턴해줌
  */
 public class MemberDao {
-	private String url="jdbc:oracle:thin:@localhost:1521:xe";
-	private String id="JDBC";
-	private String pw="JDBC";
 	/*
 	 * JDBC용 객체
 	 * -Connection: DB의 연결정보를 담고 있는 객체
@@ -64,10 +62,9 @@ public class MemberDao {
 	 * 	>INSERT, UPDATE, DELETE 문의 경우 - int(처리된 행의 갯수)
 	 */
 	//사용자가 회원 추가 요청 시 입력했던 값들을 가지고 INSERT 문을 실행하는 메소드
-	public int insertMember(Member m) {//INSERT 문 => 처리된 행의 개수 반환=>트랜 잭션 처리
+	public int insertMember(Connection conn, Member m) {//INSERT 문 => 처리된 행의 개수 반환=>트랜 잭션 처리
 		// 0) JDBC 처리를 하기 전에 우선적으로 필요한 변수들 먼저 세팅
 		int result=0; //처리된 결과(처리된 행의 개수)를 담아줄 변수
-		Connection conn=null; //접속할 DB의 연결정보를 담는 변수
 		PreparedStatement pstmt=null; //SQL문 실행 후 결과를 받기 위한 변수. Statement와 역할은 똑같지만 사용법은 다름
 		
 		//실행할 SQL 문(완성된 형태로 String으로 정의해둘 것)=>반드시 세미콜론은 떼고 넣어줄 것
@@ -75,13 +72,6 @@ public class MemberDao {
 		String sql="INSERT INTO MEMBER VALUES (SEQ_USERNO.NEXTVAL,?,?,?,?,?,?,?,?,?,DEFAULT)";
 		//System.out.println(sql);
 		try {
-			//1) JDBC Drive 등록(DriverManager)
-			Class.forName("oracle.jdbc.driver.OracleDriver");
-			//ojdbc6.jar 파일이 누락되거나, 잘 추가되었지만 오타가 있을 경우=>ClassNotFoundException 발생
-			
-			//2) Connection 객체 생성(DB와 연결->url, 계정명, 비밀번호)
-			conn=DriverManager.getConnection(url, id, pw);
-			
 			//3_1) PreparedStatement 객체 생성
 			pstmt=conn.prepareStatement(sql); //미리 sql을 넘기는 꼴
 			
@@ -105,38 +95,23 @@ public class MemberDao {
 			
 			//4,5) DB에 완성된 SQL 문을 실행 후 결과를 받기
 			result=pstmt.executeUpdate(); //INSERT=> int (처리된 행의 개수)
-			
-			//6_2) 트랜잭션 처리
-			if(result>0) { //성공
-				conn.commit(); //COMMIT 처리
-			}else { //실패
-				conn.rollback(); //ROLLBACK 처리
-			}
-			
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			//7) 다 쓴 JDBC 자원 반납=> 객체 생성의 역순으로 close
-			try {
-				pstmt.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			//7) pstmt 객체 반납
+			JDBCTemplate.close(pstmt);
 		}
 		//8 ) 결과 반환
 		return result;
 	}
 	
 	//사용자의 회원 전체 요청 시 SELECT 문을 실행할 메소드
-	public ArrayList<Member> selectAll() { //SELECT=>ResultSet 객체(여러 행 조회)
+	public ArrayList<Member> selectAll(Connection conn) { //SELECT=>ResultSet 객체(여러 행 조회)
 		//0) 필요한 변수들 셋팅
 		//조회된 결과를 뽑아서 담아줄 ArrayList 생성(현재 텅 빈 리스트)
 		ArrayList<Member> list=new ArrayList<>(); //조회된 회원들이 담김
 		
-		Connection conn=null; //접속할 DB의 연결정보를 담는 변수
 		PreparedStatement pstmt=null; //SQL 문 실행 후 결과를 받기 위한 변수
 		ResultSet rset=null; //SELECT 문이 실행된 조회결과값들이 처음에 실질적으로 담길 변수
 		
@@ -147,13 +122,7 @@ public class MemberDao {
 		//SELECT * FROM MEMBER
 		String sql="SELECT * FROM MEMBER";
 		
-		try {
-			//1) JDBC Driver 등록(DriverManager)
-			Class.forName("oracle.jdbc.driver.OracleDriver");
-			
-			//2) Connection 객체 생성
-			conn=DriverManager.getConnection(url, id, pw);
-			
+		try {		
 			//3_1) PreparedStatement 객체 생성
 			pstmt=conn.prepareStatement(sql);
 			
@@ -196,31 +165,23 @@ public class MemberDao {
 				list.add(m);
 			}
 			
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			//7) 자원 반납(생성된 순서의 역순)
-			try {
-				rset.close();
-				pstmt.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}	
+			JDBCTemplate.close(rset);
+			JDBCTemplate.close(pstmt);
 		}
 		//8) 결과 반환
 		return list;
 	}
 	
 	//사용자의 아이디로 회원 검색 요청시 SELECT 문을 실행할 메소드
-	public Member selectByUserId(String userId) {//SELECT 문=>ResultSet 객체(한 행 조회)
+	public Member selectByUserId(Connection conn, String userId) {//SELECT 문=>ResultSet 객체(한 행 조회)
 		//0) 필요한 변수들 셋팅
 		//조회된 한 회원에 대한 정보를 담을 변수
 		Member m=null;
-		
-		Connection conn=null; //접속할 DB의 연결정보를 담는 변수
+
 		PreparedStatement pstmt=null; //SQL 문 실행 후 결과를 받기 위한 변수
 		ResultSet rset=null; //SELECT문이 실행된 조회결과값들이 처음에 실질적으로 담길 변수
 		
@@ -229,12 +190,6 @@ public class MemberDao {
 		
 		
 		try {
-			//1) JDBC Driver 등록(DriverManager)
-			Class.forName("oracle.jdbc.driver.OracleDriver");
-			
-			//2) Connection 객체 생성
-			conn=DriverManager.getConnection(url, id, pw);
-			
 			//3_1) PrepareStatement 객체 생성
 			pstmt=conn.prepareStatement(sql);
 			
@@ -260,31 +215,22 @@ public class MemberDao {
 							rset.getString("HOBBY"),
 							rset.getDate("ENROLLDATE"));
 			}
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			//7) 다 쓴 JDBC 객체 반납(생성된 순서의 역순)
-			try {
-				rset.close();
-				pstmt.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}	
+			JDBCTemplate.close(rset);
+			JDBCTemplate.close(pstmt);
 		}
 		//8) 결과 반환
 		return m; //조회된 한명의 회원의 정보
 	}
 	
 	//사용자의 이름 키워드로 회원 검색 요청시 SELECT 문을 실행할 메소드
-	public ArrayList<Member> selectByUserName(String keyword) {
+	public ArrayList<Member> selectByUserName(Connection conn,String keyword) {
 		//0) 필요한 변수들 셋팅
 		//조회된 결과를 뽑아서 담아줄 ArrayList 생성(현재 텅 빈 리스트)
 		ArrayList<Member> list=new ArrayList<>(); //조회된 회원들이 담김
-				
-		Connection conn=null; //접속할 DB의 연결정보를 담는 변수
+
 		PreparedStatement pstmt=null; //SQL 문 실행 후 결과를 받기 위한 변수
 		ResultSet rset=null; //SELECT문이 실행된 조회결과값들이 처음에 실질적으로 담길 변수
 				
@@ -301,12 +247,6 @@ public class MemberDao {
 		//단, 구멍을 매꾸는 과정에서 양쪽에 %를 붙여서 매꿔줘야 함
 		
 		try {
-			//1) JDBC Driver 등록(DriverManager)
-			Class.forName("oracle.jdbc.driver.OracleDriver");
-			
-			//2) Connection 객체 생성
-			conn=DriverManager.getConnection(url, id, pw);
-			
 			//3_1) PreparedStatement 객체 생성
 			pstmt=conn.prepareStatement(sql);
 			
@@ -343,39 +283,27 @@ public class MemberDao {
 				list.add(m);
 			}
 			
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			//7) 다 쓴 JDBC 객체 반납(생성된 순서의 역순)
-			try {
-				rset.close();
-				pstmt.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}	
+			JDBCTemplate.close(rset);
+			JDBCTemplate.close(pstmt);
 		}
 		//8) 결과 반환
 		return list;
 	}
 	
 	//회원 변경 요청이 들어왔을 때 UPDATE 구문을 실행할 메소드
-	public int updateMember(Member m) {//UPDATE 문 => int 형 반환(처리된 행의 갯수) =>트랜잭션 처리
+	public int updateMember(Connection conn,Member m) {//UPDATE 문 => int 형 반환(처리된 행의 갯수) =>트랜잭션 처리
 		//0) 필요한 변수들 셋팅
 		int result=0;//최종적으로 SQL 문을 실행할 결과를 담을 변수
-		Connection conn=null;
+
 		PreparedStatement pstmt=null;
 		//실행할 SQL 문
 		//UPDATE MEMBER SET USERPWD='m.getUserPwd', EMAIL='m.getEmail', PHONE='m.getPhone', ADDRESS='m.getAddress' WHERE USERID='m.getUserId'
 		String sql="UPDATE MEMBER SET USERPWD=?, EMAIL=?, PHONE=?, ADDRESS=? WHERE USERID=?";
 		try {
-			//1) JDBC Driver 등록
-			Class.forName("oracle.jdbc.driver.OracleDriver");
-			//2) Connection 객체 생성
-			conn=DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe","JDBC","JDBC");
-			//3_1) PrepareStatement 객체 생성
 			pstmt=conn.prepareStatement(sql);
 			//3_2) 미완성된 SQL 문을 완성시키기
 			pstmt.setString(1, m.getUserPwd());
@@ -385,48 +313,29 @@ public class MemberDao {
 			pstmt.setString(5, m.getUserId());
 			//4,5) SQL문을 실행 후 결과 받기
 			result=pstmt.executeUpdate();
-			//6_2) 트랜잭션 처리
-			if(result>0){//result 값이 0보다 크다면=>성공(COMMIT)
-				conn.commit();
-			}else {
-				conn.rollback();
-			}
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			try {//7) 자원 반납
-				pstmt.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}		
+			//7) 자원 반납
+			JDBCTemplate.close(pstmt);		
 		}
 		//8) 결과 반환
 		return result; //UPDATE 된 행의 갯수
 	}
 	
 	//회원 탈퇴 요청이 들어왔을 때 DELETE 구문을 실행하는 메소드
-	public int deleteMember(String userId) {
+	public int deleteMember(Connection conn,String userId) {
 		//0)필요한 변수 셋팅
 		int result=0;
-		Connection conn=null;
+
 		PreparedStatement pstmt=null;
 		
 		//실행할 SQL 문
 		//DELETE FROM MEMBER WHERE USERID='';
 		String sql="DELETE FROM MEMBER WHERE USERID=?";
 		
-		
 		try {
-			//1)JDBC Driver 등록
-			Class.forName("oracle.jdbc.driver.OracleDriver");
-			
-			//2)Connection 객체 생성
-			conn=DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "JDBC", "JDBC");
-			
-			
 			//3_1)PrepareStatement 객체 생성
 			pstmt=conn.prepareStatement(sql);
 			//3_2)미완성된 SQL문 완성 단계
@@ -434,25 +343,11 @@ public class MemberDao {
 			
 			//4,5)SQL 문 실행 후 결과 받기
 			result=pstmt.executeUpdate();
-			
-			//6_2)트랜잭션 처리
-			if(result>0) {
-				conn.commit();
-			}else {
-				conn.rollback();
-			}
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			try {
-				//7)자원 반납
-				pstmt.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			JDBCTemplate.close(pstmt);
 		}
 		//8)결과 반환
 		return result;
