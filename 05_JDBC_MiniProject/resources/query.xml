@@ -1,22 +1,76 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
-	<entry key="selectById">
-	SELECT * FROM PRODUCT WHERE PRODUCT_ID=?
-	</entry>
+
+	<comment>Product.xml</comment>
+
+	<!-- 1. 제품 전체 조회(SELECT) -->
 	<entry key="selectAll">
-	SELECT * FROM PRODUCT
+		SELECT PRODUCT_ID, PRODUCT_NAME, PRICE, DESCRIPTION, STOCK, CATEGORY_NAME
+		FROM PRODUCT P, PR_CATEGORY C  
+		WHERE P.CATEGORY_NO = C.CATEGORY_NO AND 
+		DELETE_YN = 'N' 
+		ORDER BY 1
 	</entry>
+
+	<!-- 2. 제품 입력(INSERT) -->
 	<entry key="insertProduct">
-	INSERT INTO PRODUCT VALUES (?,?,?,?,?)
+		INSERT INTO PRODUCT VALUES(?, ?, ?, ?, ?, ?, DEFAULT)
 	</entry>
-	<entry key="selectByProduct">
-	SELECT * FROM PRODUCT WHERE PRODUCT_NAME LIKE ?
+
+	<!-- 3. 제품 이름으로 검색(SELECT) -->
+	<entry key="selectByProductName">
+		SELECT PRODUCT_ID, PRODUCT_NAME, PRICE, DESCRIPTION, STOCK, CATEGORY_NAME
+		FROM PRODUCT P, PR_CATEGORY C  
+		WHERE P.CATEGORY_NO = C.CATEGORY_NO AND 
+		PRODUCT_NAME LIKE ? AND 
+		DELETE_YN ='N' 
 	</entry>
+
+	<!-- 4. 상품 카테고리별 검색(SELECT) -->
+	<entry key="selectByProductCategory">
+		SELECT PRODUCT_ID, PRODUCT_NAME, PRICE, DESCRIPTION, STOCK, CATEGORY_NAME 
+		FROM PRODUCT P, PR_CATEGORY C 
+		WHERE P.CATEGORY_NO = C.CATEGORY_NO AND 
+		CATEGORY_NAME = ? AND 
+		DELETE_YN = 'N' 
+		ORDER BY PRICE
+	</entry>
+	
+	<!--	5.제품 수정(UPDATE) -->
 	<entry key="updateProduct">
-	UPDATE PRODUCT SET PRODUCT_NAME=?, PRICE=?, DESCRIPTION=?, STOCK=? WHERE PRODUCT_ID=?
+		UPDATE PRODUCT 
+		SET PRICE = ?, DESCRIPTION =?, STOCK = ? 
+		WHERE PRODUCT_ID = ? AND 
+		DELETE_YN = 'N'
 	</entry>
+
+	<!-- 6. 제품 삭제(UPDATE) -->
+	<entry key="updatedeleteyn">
+		UPDATE PRODUCT SET DELETE_YN = 'Y' WHERE PRODUCT_ID = ?
+	</entry>
+	
+	<!-- 7. 제품 삭제 취소 -->
+	<!-- 7-1) 삭제 제품 조회(SELECT) -->
+	<entry key="selectDelete">
+		SELECT PRODUCT_ID, PRODUCT_NAME, PRICE, DESCRIPTION, STOCK, CATEGORY_NAME
+		FROM PRODUCT P, PR_CATEGORY C
+		WHERE P.CATEGORY_NO = C.CATEGORY_NO
+		AND DELETE_YN = 'Y'
+		ORDER BY 1
+	</entry>
+	
+	<!-- 7-2) 제품 삭제 취소(UPDATE) -->
+	<entry key="updateDeleteCancel">
+		UPDATE PRODUCT 
+		   SET DELETE_YN = 'N' 
+		 WHERE PRODUCT_ID = ?
+	</entry>
+
+	<!-- 8. 제품 최종 삭제(DELETE) -->
 	<entry key="deleteProduct">
-	DELETE FROM PRODUCT WHERE PRODUCT_ID=?
+		DELETE FROM PRODUCT
+			WHERE PRODUCT_ID = ?
 	</entry>
+	
 </properties>
